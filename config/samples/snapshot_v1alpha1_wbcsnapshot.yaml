@@ -1,0 +1,9 @@
+apiVersion: snapshot.wbc.com/v1alpha1
+kind: WbcSnapshot
+metadata:
+  labels:
+    app.kubernetes.io/name: my-first-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: wbcsnapshot-sample
+spec:
+  # TODO(user): Add fields here

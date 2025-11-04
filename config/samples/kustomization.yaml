@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- snapshot_v1alpha1_wbcsnapshot.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

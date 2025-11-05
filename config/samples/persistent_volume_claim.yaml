@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-test
+spec:
+  storageClassName: manual # Must match the storageClassName of the PV (or an existing StorageClass)
+  accessModes:
+    - ReadWriteOnce # Requests a volume that can be mounted read-write by a single node
+  resources:
+    requests:
+      storage: 5Gi # Requests a minimum of 5 GiB of storage

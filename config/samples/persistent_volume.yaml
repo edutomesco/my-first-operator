@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-test
+spec:
+  capacity:
+    storage: 5Gi # Defines the size of the volume
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce # Can be mounted read-write by a single node
+  persistentVolumeReclaimPolicy: Retain # Determines what happens to the volume after the PVC is deleted
+  storageClassName: manual
+  hostPath: # Example of a hostPath volume (NOT for production)
+    path: "/tmp/wbc-test"

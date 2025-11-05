@@ -71,6 +71,26 @@ func (r *WbcSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, snapshotCreatorErr
 	}
 
+	// actualPersistentVolumeClaim := &v1.PersistentVolumeClaim{}
+	// actualPvcErr := r.Get(ctx, types.NamespacedName{Name: snapshot.Spec.SourceClaimName, Namespace: req.Namespace}, actualPersistentVolumeClaim)
+	// if actualPvcErr == nil {
+	// 	deleteErr := r.Delete(ctx, actualPersistentVolumeClaim)
+	// 	if deleteErr != nil {
+	// 		logf.Log.Error(deleteErr, "Error encountered deleting Persistent Volume Claim")
+	// 		return ctrl.Result{}, deleteErr
+	// 	}
+
+	// 	actualPersistentVolume := &v1.PersistentVolume{}
+	// 	actualPvErr := r.Get(ctx, types.NamespacedName{Name: snapshot.Spec.SourceVolumeName, Namespace: req.Namespace}, actualPersistentVolume)
+	// 	if actualPvErr == nil {
+	// 		deleteErr := r.Delete(ctx, actualPersistentVolume)
+	// 		if deleteErr != nil {
+	// 			logf.Log.Error(deleteErr, "Error encountered deleting Persistent Volume")
+	// 			return ctrl.Result{}, deleteErr
+	// 		}
+	// 	}
+	// }
+
 	newPvName := "wbc-snapshot-pv-" + strconv.FormatInt(time.Now().Unix(), 10) + "-" + snapshot.Spec.SourceVolumeName
 	newPvcName := "wbc-snapshot-pvc-" + strconv.FormatInt(time.Now().Unix(), 10) + "-" + snapshot.Spec.SourceClaimName
 
@@ -152,11 +172,11 @@ func (r *WbcSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			Containers: []v1.Container{
 				{
 					Name:  "busybox",
-					Image: "k8s.grc.io/busybox",
+					Image: "busybox",
 					Command: []string{
 						"/bin/sh",
 						"-c",
-						"cp /tmp/source/test.file /tmp/dest/test.file",
+						"cp /tmp/source/test.png /tmp/dest/test.png",
 					},
 					VolumeMounts: []v1.VolumeMount{
 						{
@@ -164,7 +184,7 @@ func (r *WbcSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 							MountPath: "/tmp/source",
 						},
 						{
-							Name:      "wbc-snapshot" + newPvcName,
+							Name:      "wbc-snapshot-" + newPvcName,
 							MountPath: "/tmp/dest",
 						},
 					},

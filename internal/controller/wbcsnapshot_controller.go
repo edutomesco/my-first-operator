@@ -71,29 +71,51 @@ func (r *WbcSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		ctx, types.NamespacedName{Name: "snapshot-creator", Namespace: req.Namespace}, snapshotCreator,
 	)
 	if snapshotCreatorErr == nil {
-		logf.Log.Error(snapshotCreatorErr, "Snapshot Creator already running!")
-		return ctrl.Result{}, snapshotCreatorErr
+		snapshotDeleteErr := r.Delete(ctx, snapshotCreator)
+		if snapshotDeleteErr != nil {
+			logf.Log.Error(snapshotDeleteErr, "Error encountered deleting snapshot-creator")
+			return ctrl.Result{}, snapshotCreatorErr
+		}
 	}
 
-	// actualPersistentVolumeClaim := &v1.PersistentVolumeClaim{}
-	// actualPvcErr := r.Get(ctx, types.NamespacedName{Name: snapshot.Spec.SourceClaimName, Namespace: req.Namespace}, actualPersistentVolumeClaim)
-	// if actualPvcErr == nil {
-	// 	deleteErr := r.Delete(ctx, actualPersistentVolumeClaim)
-	// 	if deleteErr != nil {
-	// 		logf.Log.Error(deleteErr, "Error encountered deleting Persistent Volume Claim")
-	// 		return ctrl.Result{}, deleteErr
-	// 	}
+	oldSnapshotVolumeList := &v1.PersistentVolumeList{}
+	opts := []client.ListOption{
+		client.InNamespace(req.Namespace),
+		client.MatchingLabels{"type": "snapshot"},
+	}
+	oldSnapshotVolumeListErr := r.List(
+		ctx, oldSnapshotVolumeList, opts...,
+	)
+	if oldSnapshotVolumeListErr == nil {
+		for _, osvl := range oldSnapshotVolumeList.Items {
+			oldSnapshotVolumeDeleteErr := r.Delete(ctx, &osvl)
+			if oldSnapshotVolumeDeleteErr != nil {
+				logf.Log.Error(oldSnapshotVolumeDeleteErr, "Error encountered deleting persistent volume")
+				return ctrl.Result{}, oldSnapshotVolumeDeleteErr
+			}
+		}
+	} else {
+		logf.Log.Error(oldSnapshotVolumeListErr, "Error encountered listing persistent volume list")
+		return ctrl.Result{}, oldSnapshotVolumeListErr
+	}
 
-	// 	actualPersistentVolume := &v1.PersistentVolume{}
-	// 	actualPvErr := r.Get(ctx, types.NamespacedName{Name: snapshot.Spec.SourceVolumeName, Namespace: req.Namespace}, actualPersistentVolume)
-	// 	if actualPvErr == nil {
-	// 		deleteErr := r.Delete(ctx, actualPersistentVolume)
-	// 		if deleteErr != nil {
-	// 			logf.Log.Error(deleteErr, "Error encountered deleting Persistent Volume")
-	// 			return ctrl.Result{}, deleteErr
-	// 		}
-	// 	}
-	// }
+	oldSnapshotVolumeClaimList := &v1.PersistentVolumeClaimList{}
+	opts = []client.ListOption{
+		client.InNamespace(req.Namespace),
+		client.MatchingLabels{"type": "snapshot"},
+	}
+	oldSnapshotVolumeClaimListErr := r.List(
+		ctx, oldSnapshotVolumeClaimList, opts...,
+	)
+	if oldSnapshotVolumeClaimListErr == nil {
+		for _, osvcl := range oldSnapshotVolumeClaimList.Items {
+			oldSnapshotVolumeClaimDeleteErr := r.Delete(ctx, &osvcl)
+			if oldSnapshotVolumeClaimDeleteErr != nil {
+				logf.Log.Error(oldSnapshotVolumeClaimDeleteErr, "Error encountered deleting persistent volume claim")
+				return ctrl.Result{}, oldSnapshotVolumeClaimDeleteErr
+			}
+		}
+	}
 
 	newPvName := "wbc-snapshot-pv-" + strconv.FormatInt(time.Now().Unix(), 10) + "-" + snapshot.Spec.SourceVolumeName
 	newPvcName := "wbc-snapshot-pvc-" + strconv.FormatInt(time.Now().Unix(), 10) + "-" + snapshot.Spec.SourceClaimName
@@ -102,6 +124,9 @@ func (r *WbcSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      newPvName,
 			Namespace: req.Namespace,
+			Labels: map[string]string{
+				"type": "snapshot",
+			},
 		},
 		Spec: v1.PersistentVolumeSpec{
 			StorageClassName: "manual",
@@ -114,6 +139,7 @@ func (r *WbcSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					Path: snapshot.Spec.HostPath,
 				},
 			},
+			PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
 		},
 	}
 
@@ -129,6 +155,9 @@ func (r *WbcSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      newPvcName,
 			Namespace: req.Namespace,
+			Labels: map[string]string{
+				"type": "snapshot",
+			},
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
 			StorageClassName: &manualStorageClass,
@@ -180,7 +209,7 @@ func (r *WbcSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					Command: []string{
 						"/bin/sh",
 						"-c",
-						"cp /tmp/source/test.png /tmp/dest/test.png",
+						"cp -a /tmp/source/. /tmp/dest/",
 					},
 					VolumeMounts: []v1.VolumeMount{
 						{

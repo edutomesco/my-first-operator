@@ -42,6 +42,10 @@ type WbcSnapshotReconciler struct {
 // +kubebuilder:rbac:groups=snapshot.wbc.com,resources=wbcsnapshots,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=snapshot.wbc.com,resources=wbcsnapshots/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=snapshot.wbc.com,resources=wbcsnapshots/finalizers,verbs=update
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=create;delete;deletecollection;get;list;patch;update;watch
+// +kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=create;delete;deletecollection;get;list;patch;update;watch
+// +kubebuilder:rbac:groups=core,resources=persistentvolumes,verbs=create;delete;deletecollection;get;list;patch;update;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
